@@ -111,21 +111,6 @@ A React TypeScript modal component for interactive data visualization with chart
    }
    ```
 
-### Option 2: Package Installation (If Published)
-
-```bash
-npm install data-visualization-modal
-# or
-yarn add data-visualization-modal
-```
-
-Then import:
-```tsx
-import { DataViewer } from 'data-visualization-modal';
-```
-
-## Component API
-
 ### DataViewer Component
 
 The main modal component that provides both chart and table views for data visualization.
