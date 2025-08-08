@@ -12,16 +12,21 @@ type ChartType = "Bar Chart" | "Line Chart" | "Area Chart" | "Radar Chart" | "St
 const DataViewerChart: React.FC<DataViewerChartProps> = ({ data }) => {
   const [selectedChartType, setSelectedChartType] = useState<ChartType>("Bar Chart");
   const [showChartSelector, setShowChartSelector] = useState(false);
+  const [selectedXAxis, setSelectedXAxis] = useState<string>("");
+  const [selectedYAxis, setSelectedYAxis] = useState<string>("");
+  const [showXAxisSelector, setShowXAxisSelector] = useState(false);
+  const [showYAxisSelector, setShowYAxisSelector] = useState(false);
 
   const chartTypes: ChartType[] = ["Bar Chart", "Line Chart", "Area Chart", "Radar Chart", "Step Chart", "Pie Chart"];
 
   // Analyze data to find numeric and categorical columns
-  const { numericColumns, categoricalColumns } = useMemo(() => {
-    if (data.length === 0) return { numericColumns: [], categoricalColumns: [] };
+  const { numericColumns, categoricalColumns, allColumns } = useMemo(() => {
+    if (data.length === 0) return { numericColumns: [], categoricalColumns: [], allColumns: [] };
 
     const firstRow = data[0];
     const numeric: string[] = [];
     const categorical: string[] = [];
+    const all: string[] = Object.keys(firstRow);
 
     Object.entries(firstRow).forEach(([key, value]) => {
       if (typeof value === "number") {
@@ -31,10 +36,62 @@ const DataViewerChart: React.FC<DataViewerChartProps> = ({ data }) => {
       }
     });
 
-    return { numericColumns: numeric, categoricalColumns: categorical };
+    return { numericColumns: numeric, categoricalColumns: categorical, allColumns: all };
   }, [data]);
 
-  // Generate chart data based on first categorical and numeric column
+  // Smart column selection - prioritize meaningful columns
+  const getSmartColumnSelection = () => {
+    if (numericColumns.length === 0 || categoricalColumns.length === 0) {
+      return { xAxisColumn: "", yAxisColumn: "" };
+    }
+
+    // Find the best Y-axis column (numeric) - prioritize sales, total, amount, etc.
+    const yAxisPriority = ['total sales', 'sales', 'amount', 'total', 'revenue', 'value', 'price', 'quantity'];
+    let yAxisColumn = numericColumns[0]; // default to first numeric
+    
+    for (const priority of yAxisPriority) {
+      const found = numericColumns.find(col => 
+        col.toLowerCase().includes(priority.toLowerCase())
+      );
+      if (found) {
+        yAxisColumn = found;
+        break;
+      }
+    }
+
+    // Find the best X-axis column (categorical) - prioritize names over IDs
+    const xAxisPriority = ['name', 'first name', 'last name', 'country', 'category', 'type'];
+    let xAxisColumn = categoricalColumns[0]; // default to first categorical
+    
+    for (const priority of xAxisPriority) {
+      const found = categoricalColumns.find(col => 
+        col.toLowerCase().includes(priority.toLowerCase())
+      );
+      if (found) {
+        xAxisColumn = found;
+        break;
+      }
+    }
+
+    // Avoid using ID columns as X-axis if there are better options
+    if (xAxisColumn.toLowerCase().includes('id') && categoricalColumns.length > 1) {
+      const nonIdColumns = categoricalColumns.filter(col => 
+        !col.toLowerCase().includes('id')
+      );
+      if (nonIdColumns.length > 0) {
+        xAxisColumn = nonIdColumns[0];
+      }
+    }
+
+    return { xAxisColumn, yAxisColumn };
+  };
+
+  // Initialize selected columns based on smart selection or user preference
+  const smartSelection = getSmartColumnSelection();
+  const currentXAxis = selectedXAxis || smartSelection.xAxisColumn;
+  const currentYAxis = selectedYAxis || smartSelection.yAxisColumn;
+
+  // Generate chart data based on selected or smart column selection
   const chartData = useMemo(() => {
     if (data.length === 0 || categoricalColumns.length === 0 || numericColumns.length === 0) {
       return { 
@@ -45,8 +102,8 @@ const DataViewerChart: React.FC<DataViewerChartProps> = ({ data }) => {
       };
     }
 
-    const categoryCol = categoricalColumns[0];
-    const numericCol = numericColumns[0];
+    const categoryCol = currentXAxis;
+    const numericCol = currentYAxis;
 
     // Group by category and sum/average numeric values
     const groupedData = data.reduce((acc, row) => {
@@ -72,7 +129,7 @@ const DataViewerChart: React.FC<DataViewerChartProps> = ({ data }) => {
       numericCol: string;
       categoryCol: string;
     };
-  }, [data, categoricalColumns, numericColumns]);
+  }, [data, currentXAxis, currentYAxis, categoricalColumns, numericColumns]);
 
   const getChartOptions = () => {
     const { categories, values, numericCol, categoryCol } = chartData;
@@ -533,6 +590,95 @@ const DataViewerChart: React.FC<DataViewerChartProps> = ({ data }) => {
                   }}
                 >
                   {type}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Column Selection */}
+      <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
+        {/* X-Axis Column Selector */}
+        <div className="relative flex-1 sm:max-w-xs">
+          <label className="block text-xs font-medium text-gray-600 mb-1">X-Axis (Category)</label>
+          <button
+            onClick={() => setShowXAxisSelector(!showXAxisSelector)}
+            className="flex items-center justify-between w-full px-3 py-1.5 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:ring-2 outline-none text-sm"
+            style={{
+              '--tw-ring-color': colors.primary + '33',
+            } as React.CSSProperties}
+            onFocus={(e) => {
+              e.currentTarget.style.borderColor = colors.primary;
+            }}
+            onBlur={(e) => {
+              e.currentTarget.style.borderColor = '#d1d5db';
+            }}
+          >
+            <span className="truncate">{currentXAxis}</span>
+            <ChevronDown size={14} className={`ml-2 transition-transform ${showXAxisSelector ? 'rotate-180' : ''}`} />
+          </button>
+          
+          {showXAxisSelector && (
+            <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-md shadow-lg z-20 max-h-40 overflow-y-auto">
+              {allColumns.map((column) => (
+                <button
+                  key={column}
+                  onClick={() => {
+                    setSelectedXAxis(column);
+                    setShowXAxisSelector(false);
+                  }}
+                  className={`w-full text-left px-3 py-1.5 text-sm hover:bg-gray-50 first:rounded-t-md last:rounded-b-md ${
+                    currentXAxis === column ? 'text-red-800' : 'text-gray-700'
+                  }`}
+                  style={{
+                    backgroundColor: currentXAxis === column ? `${colors.primary}20` : undefined,
+                  }}
+                >
+                  <span className="truncate">{column}</span>
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Y-Axis Column Selector */}
+        <div className="relative flex-1 sm:max-w-xs">
+          <label className="block text-xs font-medium text-gray-600 mb-1">Y-Axis (Value)</label>
+          <button
+            onClick={() => setShowYAxisSelector(!showYAxisSelector)}
+            className="flex items-center justify-between w-full px-3 py-1.5 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:ring-2 outline-none text-sm"
+            style={{
+              '--tw-ring-color': colors.primary + '33',
+            } as React.CSSProperties}
+            onFocus={(e) => {
+              e.currentTarget.style.borderColor = colors.primary;
+            }}
+            onBlur={(e) => {
+              e.currentTarget.style.borderColor = '#d1d5db';
+            }}
+          >
+            <span className="truncate">{currentYAxis}</span>
+            <ChevronDown size={14} className={`ml-2 transition-transform ${showYAxisSelector ? 'rotate-180' : ''}`} />
+          </button>
+          
+          {showYAxisSelector && (
+            <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-md shadow-lg z-20 max-h-40 overflow-y-auto">
+              {allColumns.map((column) => (
+                <button
+                  key={column}
+                  onClick={() => {
+                    setSelectedYAxis(column);
+                    setShowYAxisSelector(false);
+                  }}
+                  className={`w-full text-left px-3 py-1.5 text-sm hover:bg-gray-50 first:rounded-t-md last:rounded-b-md ${
+                    currentYAxis === column ? 'text-red-800' : 'text-gray-700'
+                  }`}
+                  style={{
+                    backgroundColor: currentYAxis === column ? `${colors.primary}20` : undefined,
+                  }}
+                >
+                  <span className="truncate">{column}</span>
                 </button>
               ))}
             </div>
