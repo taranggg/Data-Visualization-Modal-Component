@@ -152,45 +152,47 @@ const DataViewerTable: React.FC<DataViewerTableProps> = ({ data }) => {
       </div>
 
       {/* Table */}
-      <div className="overflow-x-auto border border-gray-200 rounded-lg">
-        <table className="min-w-full divide-y divide-gray-200">
-          <thead className="bg-gray-50">
-            <tr>
-              {visibleColumnNames.map((column) => (
-                <th
-                  key={column}
-                  className="px-3 sm:px-6 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-                >
-                  <span className="block sm:hidden">{formatColumnName(column).slice(0, 8)}{formatColumnName(column).length > 8 ? '...' : ''}</span>
-                  <span className="hidden sm:block">{formatColumnName(column)}</span>
-                </th>
-              ))}
-            </tr>
-          </thead>
-          <tbody className="bg-white divide-y divide-gray-200">
-            {filteredData.map((row, index) => (
-              <tr key={index} className="hover:bg-gray-50">
+      <div className="bg-white p-2 sm:p-4 rounded-lg border border-gray-200">
+        <div className="w-full h-80 sm:h-96 overflow-auto">
+          <table className="min-w-full divide-y divide-gray-200">
+            <thead className="bg-gray-50 sticky top-0 z-10">
+              <tr>
                 {visibleColumnNames.map((column) => (
-                  <td key={column} className="px-3 sm:px-6 py-3 sm:py-4 text-xs sm:text-sm text-gray-900">
-                    <div className="max-w-xs sm:max-w-none overflow-hidden text-ellipsis whitespace-nowrap">
-                      {String(row[column] || "")}
-                    </div>
-                  </td>
+                  <th
+                    key={column}
+                    className="px-3 sm:px-4 py-1.5 sm:py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap"
+                  >
+                    <span className="block sm:hidden">{formatColumnName(column).slice(0, 8)}{formatColumnName(column).length > 8 ? '...' : ''}</span>
+                    <span className="hidden sm:block">{formatColumnName(column)}</span>
+                  </th>
                 ))}
               </tr>
-            ))}
-          </tbody>
-        </table>
-        
-        {filteredData.length === 0 && (
-          <div className="text-center py-8 sm:py-12 px-4">
-            <Search className="mx-auto h-8 w-8 sm:h-12 sm:w-12 text-gray-400" />
-            <h3 className="mt-2 text-sm font-medium text-gray-900">No data found</h3>
-            <p className="mt-1 text-sm text-gray-500">
-              {searchTerm ? "Try adjusting your search term" : "No data available"}
-            </p>
-          </div>
-        )}
+            </thead>
+            <tbody className="bg-white divide-y divide-gray-200">
+              {filteredData.map((row, index) => (
+                <tr key={index} className="hover:bg-gray-50">
+                  {visibleColumnNames.map((column) => (
+                    <td key={column} className="px-3 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm text-gray-900">
+                      <div className="max-w-xs sm:max-w-none overflow-hidden text-ellipsis whitespace-nowrap">
+                        {String(row[column] || "")}
+                      </div>
+                    </td>
+                  ))}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          
+          {filteredData.length === 0 && (
+            <div className="text-center py-8 sm:py-12 px-4">
+              <Search className="mx-auto h-8 w-8 sm:h-12 sm:w-12 text-gray-400" />
+              <h3 className="mt-2 text-sm font-medium text-gray-900">No data found</h3>
+              <p className="mt-1 text-sm text-gray-500">
+                {searchTerm ? "Try adjusting your search term" : "No data available"}
+              </p>
+            </div>
+          )}
+        </div>
       </div>
       
       {/* Footer with record count */}
